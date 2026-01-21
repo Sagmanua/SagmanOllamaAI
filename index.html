@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ollama Streaming Chat</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background: #f4f4f9; }
+        #chat-container { width: 100%; max-width: 600px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        #messages { height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background: #fafafa; }
+        .user-msg { color: #2c3e50; font-weight: bold; margin-top: 15px; }
+        .ai-msg { color: #27ae60; margin-bottom: 15px; padding-left: 10px; border-left: 3px solid #27ae60; white-space: pre-wrap; line-height: 1.5; }
+        .controls { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+        input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 4px; }
+        #downloadJson, #downloadTxt { background: #3498db; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+    <h2>Ollama Remote Chat (Live)</h2>
+    <div id="messages"></div>
+    
+    <div style="display: flex; gap: 5px;">
+        <input type="text" id="userInput" placeholder="Type here...">
+        <button id="sendBtn">Send</button>
+    </div>
+
+    <div class="controls">
+        <button id="downloadJson">Save as JSON</button>
+        <button id="downloadTxt">Save as TXT</button>
+    </div>
+</div>
+
+<script type="module">
+    import { Ollama } from 'https://cdn.jsdelivr.net/npm/ollama/browser/+esm'
+
+    const ollama = new Ollama({ host: 'https://superadaptably-arrowless-leann.ngrok-free.dev' });
+    const input = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const display = document.getElementById('messages');
+    
+    // Array to store conversation
+    let chatHistory = [];
+
+    async function sendMessage() {
+        const text = input.value.trim();
+        if (!text) return;
+
+        // 1. Save User Question to history
+        chatHistory.push({ role: 'user', content: text, timestamp: new Date().toISOString() });
+
+        // Update UI
+        display.innerHTML += `<div class="user-msg">You: ${text}</div>`;
+        input.value = '';
+        
+        const aiResponseDiv = document.createElement('div');
+        aiResponseDiv.className = 'ai-msg';
+        aiResponseDiv.innerHTML = 'Ollama: ';
+        display.appendChild(aiResponseDiv);
+        display.scrollTop = display.scrollHeight;
+
+        let fullAiResponse = "";
+
+        try {
+            const response = await ollama.generate({
+                model: 'llama3:latest',
+                prompt: text + ". Responde en español.",
+                stream: true 
+            });
+
+            for await (const part of response) {
+                fullAiResponse += part.response; // Track full text for saving
+                aiResponseDiv.innerHTML += part.response;
+                display.scrollTop = display.scrollHeight;
+            }
+
+            // 2. Save complete AI Answer to history
+            chatHistory.push({ role: 'assistant', content: fullAiResponse, timestamp: new Date().toISOString() });
+
+        } catch (err) {
+            aiResponseDiv.innerHTML += `<br><b>Error:</b> ${err.message}`;
+            console.error(err);
+        }
+    }
+
+    // Helper function for downloading
+    function downloadFile(content, fileName, contentType) {
+        const a = document.createElement("a");
+        const file = new Blob([content], { type: contentType });
+        a.href = URL.createObjectURL(file);
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    // Event Listeners
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+
+    document.getElementById('downloadJson').addEventListener('click', () => {
+        if (chatHistory.length === 0) return alert("No messages to save yet!");
+        const data = JSON.stringify(chatHistory, null, 2);
+        downloadFile(data, 'chat_history.json', 'application/json');
+    });
+
+    document.getElementById('downloadTxt').addEventListener('click', () => {
+        if (chatHistory.length === 0) return alert("No messages to save yet!");
+        let textData = "OLLAMA CHAT LOG\n================\n\n";
+        chatHistory.forEach(msg => {
+            textData += `[${msg.timestamp}] ${msg.role.toUpperCase()}:\n${msg.content}\n\n`;
+        });
+        downloadFile(textData, 'chat_history.txt', 'text/plain');
+    });
+</script>
+</body>
+</html>
