@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ollama Streaming Chat</title>
     <style>
         body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background: #f4f4f9; }
@@ -9,6 +10,7 @@
         #messages { height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background: #fafafa; }
         .user-msg { color: #2c3e50; font-weight: bold; margin-top: 15px; }
         .ai-msg { color: #27ae60; margin-bottom: 15px; padding-left: 10px; border-left: 3px solid #27ae60; white-space: pre-wrap; line-height: 1.5; }
+        .error-msg { color: #e74c3c; padding: 10px; border: 1px solid #e74c3c; border-radius: 4px; margin-top: 10px; background: #fdf2f2; }
         .controls { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
         input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
         button { padding: 10px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 4px; }
@@ -40,17 +42,14 @@
     const sendBtn = document.getElementById('sendBtn');
     const display = document.getElementById('messages');
     
-    // Array to store conversation
     let chatHistory = [];
 
     async function sendMessage() {
         const text = input.value.trim();
         if (!text) return;
 
-        // 1. Save User Question to history
         chatHistory.push({ role: 'user', content: text, timestamp: new Date().toISOString() });
 
-        // Update UI
         display.innerHTML += `<div class="user-msg">You: ${text}</div>`;
         input.value = '';
         
@@ -70,21 +69,27 @@
             });
 
             for await (const part of response) {
-                fullAiResponse += part.response; // Track full text for saving
+                fullAiResponse += part.response;
                 aiResponseDiv.innerHTML += part.response;
                 display.scrollTop = display.scrollHeight;
             }
 
-            // 2. Save complete AI Answer to history
             chatHistory.push({ role: 'assistant', content: fullAiResponse, timestamp: new Date().toISOString() });
 
         } catch (err) {
-            aiResponseDiv.innerHTML += `<br><b>Error:</b> ${err.message}`;
+            // Check if it's a connection/network error
+            if (err.message.includes('fetch') || err.name === 'TypeError' || err.message.includes('NetworkError')) {
+                aiResponseDiv.innerHTML = `<div class="error-msg">
+                    <strong>Connection Failed:</strong> The developer is poor and runs on a free server, 
+                    so he needs to restart Ollama.
+                </div>`;
+            } else {
+                aiResponseDiv.innerHTML += `<br><b style="color:red;">Error:</b> ${err.message}`;
+            }
             console.error(err);
         }
     }
 
-    // Helper function for downloading
     function downloadFile(content, fileName, contentType) {
         const a = document.createElement("a");
         const file = new Blob([content], { type: contentType });
@@ -94,7 +99,6 @@
         URL.revokeObjectURL(a.href);
     }
 
-    // Event Listeners
     sendBtn.addEventListener('click', sendMessage);
     input.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
 
