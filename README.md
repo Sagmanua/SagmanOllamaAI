@@ -1,7 +1,14 @@
 # SagmanOllamaAI
-[Open My Ai](https://sagmanua.github.io/SagmanOllamaAI/)
-[My setup for this ai ](https://colab.research.google.com/drive/1GLFaDFWv1bjayIb621JZImJFWmiV_9FX?usp=sharing)
+[Open My Ai](https://sagmanua.github.io/SagmanOllamaAI/)  
+For setup you need to crete NGROK 
+[My setup for this ai ](https://colab.research.google.com/drive/1GLFaDFWv1bjayIb621JZImJFWmiV_9FX?usp=sharing) 
 
+After setup 
+
+On line 40 change Url to your Url that apear at `print(f'export OLLAMA_HOST={ngrok_tunnel.public_url}')`
+````
+const ollama = new Ollama({ host: '[Your url]' });
+```
 
 
 
