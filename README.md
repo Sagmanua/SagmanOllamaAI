@@ -1,5 +1,6 @@
 # SagmanOllamaAI
-[Open My Ai](https://sagmanua.github.io/SagmanOllamaAI/)  
+[Open My Ai Ngrok](https://sagmanua.github.io/SagmanOllamaAI/)
+[Open My Ai CloudFlared](https://sagmanua.github.io/SagmanOllamaAI/index1.html)  
 This repo is used to crete ai on hostnig (and use power of google to trian ai)
 
 ## How to setup this Ai 
